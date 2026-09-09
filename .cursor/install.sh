@@ -35,18 +35,20 @@ else
 fi
 "${MYSQL_ADMIN[@]}" <<'SQL'
 ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('123456');
-CREATE DATABASE IF NOT EXISTS onlinediningroom DEFAULT CHARACTER SET utf8;
+CREATE DATABASE IF NOT EXISTS onlinediningroom DEFAULT CHARACTER SET utf8mb4;
 FLUSH PRIVILEGES;
 SQL
 
 echo "==> Importing schema and seed data if the database is empty"
+# The SQL dump is UTF-8; force the client charset so multibyte data is not
+# misread when the client default happens to be latin1.
 if ! mysql -uroot -p123456 -e "USE onlinediningroom; SELECT 1 FROM product LIMIT 1;" >/dev/null 2>&1; then
-    mysql -uroot -p123456 onlinediningroom < "src/main/resources/mybatis/sql(1).sql"
+    mysql --default-character-set=utf8mb4 -uroot -p123456 onlinediningroom < "src/main/resources/mybatis/sql(1).sql"
 fi
 
 echo "==> Seeding a known admin account (admin / admin123) for local development"
 if ! mysql -uroot -p123456 onlinediningroom -N -e "SELECT 1 FROM user WHERE name='admin' LIMIT 1;" | grep -q 1; then
-    mysql -uroot -p123456 onlinediningroom <<'SQL'
+    mysql --default-character-set=utf8mb4 -uroot -p123456 onlinediningroom <<'SQL'
 INSERT INTO user (name, password, salt, status, address, phone, lasttime)
 VALUES ('admin', '97d846f9058cc15a8f4547316ab68b04', 'testsalt123', 1, 'campus', '000', NOW());
 INSERT INTO user_role (uid, rid) SELECT id, 1 FROM user WHERE name='admin';
